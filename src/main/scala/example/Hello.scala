@@ -40,7 +40,7 @@ object ServerExample extends zio.App {
 
        case req @ POST -> Root / "test" =>
          for {
-           rec <- ZIO( req.fromJSON[UserRecord] )
+           rec <- req.fromJSON[UserRecord]
            _   <- MyLogging.info("my_application", "UID received: " + rec.uid )
          } yield( Response.Ok().asTextBody( "OK " + rec.uid ) )
     }
