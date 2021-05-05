@@ -9,7 +9,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "hello-http",
     libraryDependencies ++= Seq( 
-       "io.github.ollls"  %% "zio-tls-http" % "1.2-m2"
+       "io.github.ollls"  %% "zio-tls-http" % "1.2-m3"
     )
    )
 
