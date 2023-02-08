@@ -36,7 +36,8 @@ case class UserRecord(val uid: String)
 
 object ServerExample extends zio.ZIOAppDefault {
 
-  override val bootstrap = zio.Runtime.removeDefaultLoggers ++ SLF4J.slf4j ++ zio.Runtime.enableWorkStealing
+  override val bootstrap =
+    zio.Runtime.removeDefaultLoggers ++ SLF4J.slf4j ++ zio.Runtime.enableWorkStealing
 
   object param1 extends QueryParam("param1")
 
@@ -47,9 +48,9 @@ object ServerExample extends zio.ZIOAppDefault {
         ZIO.attempt(Response.Ok().asTextBody("Health Check Ok"))
 
       case GET -> Root / "user" :? param1(par) =>
-        ZIO.attempt(Response.Ok().asTextBody("param1=" + par))
+        ZIO.attempt(Response.Ok().asJsonBody(UserRecord(par)))
 
-      //Expected POST body: { "uid" :  "username" }  
+      // Expected POST body: { "uid" :  "username" }
       case req @ POST -> Root / "test" =>
         for {
           rec <- req.fromJSON[UserRecord]
@@ -59,11 +60,26 @@ object ServerExample extends zio.ZIOAppDefault {
 
     val myHttpServer =
       new TcpServer[Any](port = 8080, keepAlive = 2000, serverIP = "0.0.0.0")
+
+    val myHttpTLSServer = new TLSServer[Any](
+      port = 8084,
+      keepAlive = 4000,
+      serverIP = "0.0.0.0",
+      // serverIP = "127.0.0.1",
+      keystore = "keystore.jks",
+      "password",
+      tlsVersion = "TLSv1.2"
+    )
+
     val myHttpRouter = new HttpRouter[Any](r)
 
+    // environment now commented out
     // val AttributeLayer = ZLayer.fromZIO(ZIO.succeed("flag#1-1"))
 
-    myHttpServer.run(r) // .provideSomeLayer(AttributeLayer)
+    // port 8080 plain and port 8084 encrypted
+    // to run unencrypted connection uncomment non-tls, and comment out non tls
+    myHttpTLSServer.run(r) // .provideSomeLayer(AttributeLayer)
+    // myHttpServer.run(r) // .provideSomeLayer(AttributeLayer)
 
   }
 }
