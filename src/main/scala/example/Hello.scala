@@ -68,6 +68,7 @@ object ServerExample extends zio.ZIOAppDefault {
 
     // port 8080 plain and port 8084 encrypted
     // to run unencrypted connection uncomment non-tls, and comment out non tls
+    ZIO.log( "See access log in access.log file, logback configuration in /resources") *>
     myHttpTLSServer.run(r) // .provideSomeLayer(AttributeLayer)
     // myHttpServer.run(r) // .provideSomeLayer(AttributeLayer)
 
