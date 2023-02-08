@@ -3,7 +3,7 @@ package example
 import zio.{ZIO, Chunk}
 import zio.ZLayer
 import zio.json._
-import zio.stream.ZStream
+import zio.stream.{ZStream, ZSink}
 
 import zhttp.{TcpServer, TLSServer, ContentType}
 import zhttp.HttpRouter
@@ -11,7 +11,7 @@ import zhttp.HttpRoutes
 import zhttp.dsl._
 import zhttp.Response
 import zhttp.Method._
-import zhttp.{MultiPart, Headers}
+import zhttp.{MultiPart, Headers, ContentType, FileUtils}
 import zio.logging.backend.SLF4J
 
 object UserRecord {
@@ -36,14 +36,42 @@ object ServerExample extends zio.ZIOAppDefault {
 
     val r = HttpRoutes.of {
 
-      //works only for form-data provifing files.
-      //files only!!!
-      case req @ POST -> Root / "mpart2" => 
+      // http chunked file retrieval, type jpeg!
+      // chunkSize=16000 used for chunked retrieval
+      // it can run without chunked but file will be prefetched in memory to obtain content-len
+      case GET -> Root / "files" / StringVar(filename) =>
         for {
-          _ <- MultiPart.writeAll( req, "/Users/ostrygun/tmp/" ) //last slash important!
-        } yield(Response.Ok( ) )
+          path <- FileUtils.serverFilePath(filename, "/Users/ostrygun/tmp/")
+          str = ZStream.fromFile(path.toFile, chunkSize = 16000).chunks
+        } yield (Response
+          .Ok()
+          .asStream(str)
+          .transferEncoding("chunked")
+          .contentType(ContentType.Image_JPEG))
 
-      //exmple how to traverse all formdata in multipart 
+      // save file with the ZStream.
+      case req @ POST -> Root / "upload" / StringVar(fileName) =>
+        for {
+          path <- ZIO.attempt(
+            new java.io.File("/Users/ostrygun/tmp" + "//" + fileName)
+          )
+          _ <- ZIO.log("Receiving file: " + path.toString());
+          _ <- req.stream
+            .flatMap(c => ZStream.fromChunk(c))
+            .run(ZSink.fromFile(path))
+        } yield (Response.Ok())
+
+      // works only for form-data provifing files.
+      // files only!!!
+      case req @ POST -> Root / "mpart2" =>
+        for {
+          _ <- MultiPart.writeAll(
+            req,
+            "/Users/ostrygun/tmp/"
+          ) // last slash important!
+        } yield (Response.Ok())
+
+      // exmple how to traverse all formdata in multipart
       case req @ POST -> Root / "mpart" => {
         for {
           mpart_stream <- MultiPart.stream(req)
