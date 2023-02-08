@@ -1,10 +1,11 @@
 package example
 
-import zio.ZIO
+import zio.{ZIO, Chunk}
 import zio.ZLayer
 import zio.json._
+import zio.stream.ZStream
 
-import zhttp.{TcpServer, TLSServer}
+import zhttp.{TcpServer, TLSServer, ContentType}
 import zhttp.HttpRouter
 import zhttp.HttpRoutes
 import zhttp.dsl._
@@ -23,7 +24,6 @@ case class UserRecord(val uid: String)
 //Please see URL, for more examples/use cases.
 //https://github.com/ollls/zio-tls-http/blob/master_zio2/examples/start/src/main/scala/MyServer.scala
 
-
 object ServerExample extends zio.ZIOAppDefault {
 
   override val bootstrap =
@@ -34,6 +34,30 @@ object ServerExample extends zio.ZIOAppDefault {
   def run = {
 
     val r = HttpRoutes.of {
+      //Chunked and ZStreams
+      //Just an exercise how to send chunked data in compliaince with JSON array format.
+      //each UserRecord is a separate HTTP Chunk with a separate TCP send.
+      //You don't need to calculate content-len and you can serve the endless stream of records
+      //it can be just a stream of effects, reading records one by one
+      case GET -> Root / "chunked" =>
+        ZIO.attempt {
+          val zs = ZStream(
+            UserRecord("user1"),
+            UserRecord("user2"),
+            UserRecord("user3")
+          ).map(u => (u.toJson ))
+          val zs_first = zs.take(1).map( str => "[" + str) //prepend with [   
+          val zs_rest = zs.drop(1).map( str => "," + str )  //prepend all but first with commas
+          val zs_result = zs_first ++ zs_rest ++ ZStream( "]") //last "]", this will be extra chunk 5 bytes lenght
+          val zs_result_chunked = zs_result.map( str => Chunk.fromArray( str.getBytes() ) )
+          
+          Response
+            .Ok()
+            .asStream(zs_result_chunked)
+            .contentType(ContentType.JSON)
+            .transferEncoding("chunked")
+        }
+
       case GET -> Root / "health" =>
         ZIO.attempt(Response.Ok().asTextBody("Health Check Ok"))
 
@@ -68,8 +92,10 @@ object ServerExample extends zio.ZIOAppDefault {
 
     // port 8080 plain and port 8084 encrypted
     // to run unencrypted connection uncomment non-tls, and comment out non tls
-    ZIO.log( "See access log in access.log file, logback configuration in /resources") *>
-    myHttpTLSServer.run(r) // .provideSomeLayer(AttributeLayer)
+    ZIO.log(
+      "See access log in access.log file, logback configuration in /resources"
+    ) *>
+      myHttpTLSServer.run(r) // .provideSomeLayer(AttributeLayer)
     // myHttpServer.run(r) // .provideSomeLayer(AttributeLayer)
 
   }
