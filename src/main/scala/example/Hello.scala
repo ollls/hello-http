@@ -11,6 +11,7 @@ import zhttp.HttpRoutes
 import zhttp.dsl._
 import zhttp.Response
 import zhttp.Method._
+import zhttp.{MultiPart, Headers}
 import zio.logging.backend.SLF4J
 
 object UserRecord {
@@ -34,23 +35,52 @@ object ServerExample extends zio.ZIOAppDefault {
   def run = {
 
     val r = HttpRoutes.of {
-      //Chunked and ZStreams
-      //Just an exercise how to send chunked data in compliaince with JSON array format.
-      //each UserRecord is a separate HTTP Chunk with a separate TCP send.
-      //You don't need to calculate content-len and you can serve the endless stream of records
-      //it can be just a stream of effects, reading records one by one
+
+      //works only for form-data provifing files.
+      //files only!!!
+      case req @ POST -> Root / "mpart2" => 
+        for {
+          _ <- MultiPart.writeAll( req, "/Users/ostrygun/tmp/" ) //last slash important!
+        } yield(Response.Ok( ) )
+
+      //exmple how to traverse all formdata in multipart 
+      case req @ POST -> Root / "mpart" => {
+        for {
+          mpart_stream <- MultiPart.stream(req)
+          _ <- mpart_stream.foreach {
+            case h: Headers =>
+              ZIO.debug("********************") *> ZIO.debug(
+                "Headers: " + h.printHeaders
+              )
+            case b: Chunk[Byte] => ZIO.debug("Chunk Size = " + b.size)
+          }
+        } yield (Response.Ok())
+
+      }
+
+      // Chunked and ZStreams
+      // Just an exercise how to send chunked data in compliaince with JSON array format.
+      // each UserRecord is a separate HTTP Chunk with a separate TCP send.
+      // You don't need to calculate content-len and you can serve the endless stream of records
+      // it can be just a stream of effects, reading records one by one
       case GET -> Root / "chunked" =>
         ZIO.attempt {
           val zs = ZStream(
             UserRecord("user1"),
             UserRecord("user2"),
             UserRecord("user3")
-          ).map(u => (u.toJson ))
-          val zs_first = zs.take(1).map( str => "[" + str) //prepend with [   
-          val zs_rest = zs.drop(1).map( str => "," + str )  //prepend all but first with commas
-          val zs_result = zs_first ++ zs_rest ++ ZStream( "]") //last "]", this will be extra chunk 5 bytes lenght
-          val zs_result_chunked = zs_result.map( str => Chunk.fromArray( str.getBytes() ) )
-          
+          ).map(u => (u.toJson))
+          val zs_first = zs.take(1).map(str => "[" + str) // prepend with [
+          val zs_rest = zs
+            .drop(1)
+            .map(str => "," + str) // prepend all but first with commas
+          val zs_result =
+            zs_first ++ zs_rest ++ ZStream(
+              "]"
+            ) // last "]", this will be extra chunk 5 bytes lenght
+          val zs_result_chunked =
+            zs_result.map(str => Chunk.fromArray(str.getBytes()))
+
           Response
             .Ok()
             .asStream(zs_result_chunked)
