@@ -23,16 +23,6 @@ case class UserRecord(val uid: String)
 //Please see URL, for more examples/use cases.
 //https://github.com/ollls/zio-tls-http/blob/dev/examples/start/src/main/scala/MyServer.scala
 
-/*
-   How to switch to secure channel
-
-   import zhttp.TLSServer
-   val myHttp = new TLSServer[MyEnv]( port = 8443,
-                                      keepAlive = 4000,
-                                      serverIP = "0.0.0.0",
-                                      keystore = "keystore.jks", "password",
-                                      tlsVersion = "TLSv1.2" )
- */
 
 object ServerExample extends zio.ZIOAppDefault {
 
