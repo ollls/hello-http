@@ -5,7 +5,7 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "com.example"
 ThisBuild / organizationName := "example"
 
-resolvers += "Staging" at "https://s01.oss.sonatype.org/content/repositories/iogithubollls-1038"
+resolvers += "Staging" at "https://s01.oss.sonatype.org/content/repositories/iogithubollls-1039"
 
 Runtime / unmanagedClasspath += baseDirectory.value / "src" / "main" / "resources"
 
