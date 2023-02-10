@@ -9,9 +9,8 @@ import zhttp.{TcpServer, TLSServer, ContentType}
 import zhttp.HttpRouter
 import zhttp.HttpRoutes
 import zhttp.dsl._
-import zhttp.Response
 import zhttp.Method._
-import zhttp.{MultiPart, Headers, ContentType, FileUtils}
+import zhttp.{MultiPart, Headers, Response, ContentType, FileUtils}
 import zio.logging.backend.SLF4J
 
 object UserRecord {
@@ -115,6 +114,9 @@ object ServerExample extends zio.ZIOAppDefault {
             .contentType(ContentType.JSON)
             .transferEncoding("chunked")
         }
+
+      case GET -> Root / "test" =>
+        ZIO.attempt(Response.Ok())
 
       case GET -> Root / "health" =>
         ZIO.attempt(Response.Ok().asTextBody("Health Check Ok"))
