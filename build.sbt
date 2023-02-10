@@ -13,9 +13,6 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "2.0.8",
       "io.github.ollls" %% "zio-tls-http" % "2.0.0",
-      "dev.zio" %% "zio-logging-slf4j" % "2.1.5",
-      "org.slf4j" % "slf4j-api" % "2.0.4",
-      "ch.qos.logback" % "logback-classic" % "1.3.5"
     )
   )
 
