@@ -115,11 +115,21 @@ object ServerExample extends zio.ZIOAppDefault {
             .transferEncoding("chunked")
         }
 
+      case req @ GET -> Root / "headers" =>
+        ZIO.attempt(Response.Ok().asTextBody(req.headers.printHeaders))
+
       case GET -> Root / "test" =>
         ZIO.attempt(Response.Ok())
 
-      case GET -> Root / "health" =>
-        ZIO.attempt(Response.Ok().asTextBody("Health Check Ok"))
+      case req @ GET -> Root / "health" => {
+        ZIO.debug(
+          "FYI: java.net.URI is available for raw parsing: " + req.uri
+            .getQuery()
+        ) *>
+          ZIO.attempt(
+            Response.Ok().asStream(ZStream(Chunk.fromArray(("OK".getBytes()))))
+          )
+      }
 
       case GET -> Root / "user" :? param1(par) =>
         ZIO.attempt(Response.Ok().asJsonBody(UserRecord(par)))
