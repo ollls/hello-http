@@ -4,7 +4,7 @@ to run: sbt run
 Server code:
 https://github.com/ollls/hello-http/blob/main/src/main/scala/example/Hello.scala
 
-
+Shorter example:
 ```scala
 package example
 import zio.logging.backend.SLF4J
