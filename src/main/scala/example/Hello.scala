@@ -40,7 +40,7 @@ object ServerExample extends zio.ZIOAppDefault {
       // it can run without chunked but file will be prefetched in memory to obtain content-len
       case GET -> Root / "files" / StringVar(filename) =>
         for {
-          path <- FileUtils.serverFilePath(filename, "/Users/ostrygun/tmp/")
+          path <- FileUtils.serverFilePath(filename, "/Users/user000/tmp/")
           str = ZStream.fromFile(path.toFile, chunkSize = 16000).chunks
         } yield (Response
           .Ok()
